@@ -1,0 +1,48 @@
+{
+  first-name: mike,
+  last-name: hansen,
+  age: 27,
+  human: true,
+  family: [elizabeth, mom, dad, bubba, ingrid],
+  money: 3.50,
+  money2: 12.75,
+  velocities: 
+  [
+    {speed-of-sound: 340, Mach: 1, direction: [1, 1, 1]},
+    {speed: 70, direction: [1, 1, 1]},
+    [10, 20, 30],
+  ]
+}
+
+
+#---
+#{
+#meshes:
+#{
+#  table:
+#  {
+#    table-name: george,
+#    server: {name: bill, speed: 5, experience: 10},
+#    order: {customer: mike, food: burrito, side: rice, drink: beer, abc-vals: {a: 1., b: 2., c: 3.}}, 
+#    people: 
+#    [
+#      {first-name: mike, last-name: hansen, middle-name: alan, aliases: [michael, mikey]}, 
+#      {first-name: paul, last-name: hansen, middle-name: brian, aliases: [bubba]}
+#    ],
+#  }
+#},
+#time-solvers:
+#{
+#  aisle:
+#  {
+#    shelf: {id: 42, item: beans},
+#  },
+#},
+#higher-level-aisles:
+#[
+#  {shelf: {id: 42, item: beans},},
+#  {shelf: {id: 42, item: beans},},
+#  {shelf: {id: 42, item: beans},},
+#  {shelf: {id: 42, item: beans},},
+#],
+#}

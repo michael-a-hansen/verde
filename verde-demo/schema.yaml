@@ -1,0 +1,244 @@
+{
+  schema:
+  {
+    name: configuration,
+    type: map,
+    required-entries:
+    [
+      {name: first-name, type: string},
+      {name: last-name, type: string},
+      {name: money, type: tag, tag: double-tagged},
+      {name: human, type: bool},
+      {name: age, type: unsigned-integer},
+      {name: family, type: vector, elements: {name: family-member, type: string}},
+      {name: velocities, type: vector, elements: {name: velocity, type: tag, tag: velocity}},
+    ],
+    optional-entries:
+    [
+      {
+        name: money2, 
+        type: selector, 
+        options: 
+        [
+          {name: money2-float, type: float}, 
+          {name: money2-bool, type: bool},
+        ]
+      },
+    ],
+  },
+  tags:
+  [
+    {name: double-tagged, type: double},
+    {
+      name: velocity,
+      type: selector,
+      options:
+      [
+        {
+          name: velocities,
+          type: vector,
+          elements: {name: velocity, type: double},
+          minimum-length: 3,
+          maximum-length: 3,
+        },
+        {
+          name: speed and direction,
+          type: map,
+          required-entries:
+          [
+            {name: speed, type: double},
+            {name: direction, type: vector, elements: {name: direction, type: double}},
+          ],
+        },
+        {
+          name: speed of sound and Mach number and direction,
+          type: map,
+          required-entries:
+          [
+            {name: speed-of-sound, type: double},
+            {name: Mach, type: double},
+            {name: direction, type: vector, elements: {name: direction, type: double}},
+          ],
+        },
+      ],
+    }
+  ],
+}
+
+
+
+
+
+
+
+
+
+
+#{
+#schema:
+#{
+#  name: SPARC,
+#  type: map,
+#  description:
+#"
+#This entry describes the SPARC input file at the highest level.
+#An input file requires a \\texttt{meshes} node, a \\texttt{time-solvers} node, and one of several optional model nodes listed below.
+#The optional \\texttt{problem} specification is used for coupled problems.
+#",
+#  required:
+#  [
+#    {
+#      name: meshes,   # analogous to aero-model, meshes, time-solvers, and problem
+#      type: map,
+#      description: "a restaurant",
+#      required:
+#      [
+#        {
+#          name: table,   # analogous to discretization, fluid, boundary-conditions, initial-conditions, material-properties, etc.
+#          type: map,
+#          description: "a table in a restaurant",
+#          required:
+#          [
+#            {
+#              name: table-name,   # analogous to inviscid-flux, viscous-flux, turbulence-model
+#              type: string,
+#              description: "the name of a table"
+#            },
+#            {
+#              name: order,   # analogous to inviscid-flux, viscous-flux, turbulence-model
+#              type: map,
+#              description: "a customer's order in a restaurant",
+#              required:
+#              [
+#                {name: customer, type: string, description: "name of the customer associated with the order name of the customer associated with the order name of the customer associated with the order name of the customer associated with the order"},
+#                {name: food, type: string, values: [burrito, burger, omelet, cereal, sandwich], description: "primary food item of the order"},
+#                {name: side, type: string, values: [rice, fries, beans, coleslaw], description: "side dish of the order"},
+#                {name: drink, type: string, values: [water, horchata, beer, soda], description: "drink of the order"},
+#                {
+#                  name: abc-vals,
+#                  type: map,
+#                  required:
+#                  [
+#                    {name: a, type: float},
+#                    {name: b, type: float},
+#                    {name: c, type: float},
+#                  ],
+#                },
+#              ],
+#              optional:
+#              [
+#                {name: appetizer, type: string, values: [salad, soup, chips], description: "appetizer of the order"},
+#                {name: dessert, type: string, values: [sopaipilla, brownie, cookie], description: "dessert of the order"},
+#              ],
+#            },
+#            {
+#              name: server,   # analogous to inviscid-flux, viscous-flux, turbulence-model
+#              type: map,
+#              description: "a server in a restaurant",
+#              required:
+#              [
+#                {name: name, type: string, description: "name of the table's server"},
+#                {name: speed, type: float, description: "how fast the server can go"},
+#              ],
+#              optional:
+#              [
+#                {name: experience, type: integer, description: "how long the server has worked at the restaurant"},
+#              ],
+#            },
+#            {
+#              name: people,
+#              type: list,
+#              elements:
+#              {
+#                name: person,
+#                type: map,
+#                required:
+#                [
+#                  {name: first-name, type: string},
+#                  {name: last-name, type: string},
+#                  {name: middle-name, type: string},
+#                  {name: aliases, type: list, elements: {name: alias, type: string}},
+#                ],
+#              },
+#            },
+#          ],
+#          optional:
+#          [
+#            {
+#              name: optional-orders,
+#              type: list,
+#              elements:
+#              {
+#                name: an-optional-order,   # analogous to inviscid-flux, viscous-flux, turbulence-model
+#                type: map,
+#                description: "a customer's order in a restaurant",
+#                required:
+#                [
+#                  {name: customer, type: string, description: "name of the customer associated with the order"},
+#                  {name: food, type: string, values: [burrito, burger, omelet, cereal, sandwich], description: "primary food item of the order"},
+#                  {name: side, type: string, values: [rice, fries, beans, coleslaw], description: "side dish of the order"},
+#                  {name: drink, type: string, values: [water, horchata, beer, soda], description: "drink of the order"},
+#                ],
+#                optional:
+#                [
+#                  {name: appetizer, type: string, values: [salad, soup, chips], description: "appetizer of the order"},
+#                  {name: dessert, type: string, values: [sopaipilla, brownie, cookie], description: "dessert of the order"},
+#                ],
+#              },
+#            },
+#          ],
+#        },
+#      ],
+#    },
+#    {
+#      name: time-solvers,   # analogous to aero-model, meshes, time-solvers, and problem
+#      type: map,
+#      description: "a grocery store",
+#      required:
+#      [
+#        {
+#          name: aisle,   # analogous to discretization, fluid, boundary-conditions, initial-conditions, material-properties, etc.
+#          type: map,
+#          description: "an aisle in a grocery store",
+#          required:
+#          [
+#            {
+#              name: shelf,   # analogous to inviscid-flux, viscous-flux, turbulence-model
+#              type: map,
+#              description: "a shelf in an aisle",
+#              required:
+#              [
+#                {name: id, type: integer, description: "identification of a shelf"},
+#                {name: item, type: string, values: [chips, beans, tupperware], description: "food item stored on a shelf"},
+#              ],
+#            },
+#          ],
+#        },
+#      ],
+#    },
+#    {
+#      name: higher-level-aisles,   # analogous to discretization, fluid, boundary-conditions, initial-conditions, material-properties, etc.
+#      type: list,
+#      description: "an aisle in a grocery store",
+#      elements:
+#      {
+#        name: higher-level-aisle,
+#        type: map,
+#        required:
+#        [
+#          {
+#            name: shelf,   # analogous to inviscid-flux, viscous-flux, turbulence-model
+#            type: map,
+#            description: "a shelf in an aisle",
+#            required:
+#            [
+#              {name: id, type: integer, description: "identification of a shelf"},
+#              {name: item, type: string, values: [chips, beans, tupperware], description: "food item stored on a shelf"},
+#            ],
+#          },
+#        ],
+#      },
+#    },
+#  ],
+#},
+#}

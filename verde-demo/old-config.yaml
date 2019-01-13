@@ -1,0 +1,9 @@
+---
+author: {name: mike, human: true, stats: {lucky_number: 42, some_float: 3.5}}
+mike_dog: {name: monster, breed: cockapoo, age: 5}
+paul_dog: {name: wiggles, breed: shar pei, age: 4}
+
+transportation: horse sleigh
+#transportation: {sleigh: {drawn_by: horse, number: 12}}
+car: {model: impreza, make: subaru, year: 2016, value: 18000}
+#paul_car: truck

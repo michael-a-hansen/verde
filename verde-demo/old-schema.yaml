@@ -1,0 +1,109 @@
+---
+schema: 
+{
+  name: document,
+  type: map,
+  required:
+  [
+    {
+      name: author,
+      type: map,
+      required:
+      [
+        {name: name, type: string, values: [mike, paul, brian]},
+        {name: human, type: bool},
+        {
+          name: stats, 
+          type: map,
+          required:
+          [
+            {name: some_float, type: float, values: [1.1, 2.8, 3.5]},
+          ],
+          optional:
+          [
+            {name: lucky_number, type: integer, values: [3, 7, 42]},
+          ]
+        }
+      ]
+    },
+    {name: mike_dog, type: tag, tag: dog},
+    {name: paul_dog, type: tag, tag: dog},
+    {
+      name: transportation, 
+      type: optional, 
+      options:
+      [
+        {name: a vehicle, type: tag, tag: vehicle},
+        {name: an animal, type: tag, tag: animal},
+        {name: a sleigh, type: tag, tag: sleigh},
+      ]
+    },
+    {name: car, type: tag, tag: vehicle}
+  ]
+}
+
+tags:
+[
+  {
+    name: vehicle,
+    type: optional,
+    options:
+    [
+      {
+        name: vehicle string, 
+        type: string, 
+        values: [truck, sedan]
+      },
+      {
+        name: vehicle map, 
+        type: map, 
+        required:
+        [
+          {name: model, type: string},
+          {name: make, type: string},
+          {name: year, type: integer},
+          {name: value, type: float}
+        ]
+      }
+    ]
+  },
+  {
+    name: animal,
+    type: string,
+    values: [camel, horse]
+  },
+  {
+    name: sleigh,
+    type: optional,
+    options:
+    [
+      {name: sleigh string, type: string, values: [horse sleigh, dog sleigh]},
+      {name: sleigh map, type: map, 
+       required: 
+       [
+          {name: sleigh, type: map, 
+           required: 
+           [
+            {name: drawn_by, type: string, values: [horse, dog]},
+           ],
+           optional:
+           [
+            {name: number, type: integer},
+            {name: weight, type: positive_float},
+           ]
+          }
+       ]
+      }
+    ]
+  },
+  {
+    name: dog,
+    type: map,
+    required:
+    [
+      {name: name, type: string},
+      {name: breed, type: string, values: [shar pei, cockapoo, schnauzer]},
+      {name: age, type: positive_float}
+    ]
+  },
+]
