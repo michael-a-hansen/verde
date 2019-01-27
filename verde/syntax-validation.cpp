@@ -3,15 +3,16 @@
 
 namespace verde {
 
-SyntaxValidator::SyntaxValidator(const YAML::Node& config_node) :
-		config_node_(config_node) {
+SyntaxValidator::SyntaxValidator(const YAML::Node& config_node,
+		const bool throw_on_fail) :
+		config_node_(config_node), throw_on_fail_(throw_on_fail) {
 }
 
 void SyntaxValidator::visit(SchemaNodeBase& node) {
 	node.accept(*this);
 }
 
-void MapSchemaNode::accept(SyntaxValidator& v) {
+bool MapSchemaNode::accept(SyntaxValidator& v) {
 	const YAML::Node& config_node = v.get_config_node();
 
 	if (config_node.Type() == YAML::NodeType::Map) {
@@ -24,7 +25,8 @@ void MapSchemaNode::accept(SyntaxValidator& v) {
 			const std::string key = reqd_nn.first;
 			if (std::find(config_keys.begin(), config_keys.end(), key)
 					== config_keys.end()) {
-				throw MissingRequiredKeyFailure(get_name(), key);
+				return v.report_error(
+						MissingRequiredKeyFailure(get_name(), key));
 			}
 		}
 
@@ -35,36 +37,48 @@ void MapSchemaNode::accept(SyntaxValidator& v) {
 					!= optional_nodes_.end();
 
 			if (not is_required and not is_optional) {
-				throw InvalidKeyFailure(get_name(), key, required_nodes_string_,
-						optional_nodes_string_);
+				return v.report_error(
+						InvalidKeyFailure(get_name(), key,
+								required_nodes_string_, optional_nodes_string_));
 			}
 			if (has_required_ and not has_optional_) {
 				if (not is_required) {
-					throw InvalidKeyFailure(get_name(), key,
-							required_nodes_string_, optional_nodes_string_);
+					return v.report_error(
+							InvalidKeyFailure(get_name(), key,
+									required_nodes_string_,
+									optional_nodes_string_));
 				}
 			}
 			if (not has_required_ and has_optional_) {
 				if (not is_optional) {
-					throw InvalidKeyFailure(get_name(), key,
-							required_nodes_string_, optional_nodes_string_);
+					return v.report_error(
+							InvalidKeyFailure(get_name(), key,
+									required_nodes_string_,
+									optional_nodes_string_));
 				}
 			}
 
 			if (is_required) {
-				SyntaxValidator e(config_node[key]);
-				required_nodes_.at(key)->accept(e);
+				SyntaxValidator e(config_node[key], v.get_throw_on_fail());
+				if (not required_nodes_.at(key)->accept(e)) {
+					v.set_error_message(e.get_error_message());
+					return false;
+				}
 			} else {
-				SyntaxValidator e(config_node[key]);
-				optional_nodes_.at(key)->accept(e);
+				SyntaxValidator e(config_node[key], v.get_throw_on_fail());
+				if (not optional_nodes_.at(key)->accept(e)) {
+					v.set_error_message(e.get_error_message());
+					return false;
+				}
 			}
 		}
 	} else {
-		throw TypeValidationFailure(get_name());
+		return v.report_error(TypeValidationFailure(get_name()));
 	}
+	return true;
 }
 
-void VectorSchemaNode::accept(SyntaxValidator& v) {
+bool VectorSchemaNode::accept(SyntaxValidator& v) {
 	const YAML::Node& config_node = v.get_config_node();
 
 	if (config_node.Type() == YAML::NodeType::Sequence) {
@@ -81,20 +95,25 @@ void VectorSchemaNode::accept(SyntaxValidator& v) {
 			max_str = std::to_string(maximum_length_);
 		}
 		if (bad_length) {
-			throw LengthValidationFailure(get_name(), std::to_string(length),
-					min_str, max_str);
+			return v.report_error(
+					LengthValidationFailure(get_name(), std::to_string(length),
+							min_str, max_str));
 		}
 
 		for (const auto& element : config_node) {
-			SyntaxValidator e(element);
-			element_node_->accept(e);
+			SyntaxValidator e(element, v.get_throw_on_fail());
+			if (not element_node_->accept(e)) {
+				v.set_error_message(e.get_error_message());
+				return false;
+			}
 		}
 	} else {
-		throw TypeValidationFailure(get_name());
+		return v.report_error(TypeValidationFailure(get_name()));
 	}
+	return true;
 }
 
-void SelectorSchemaNode::accept(SyntaxValidator& v) {
+bool SelectorSchemaNode::accept(SyntaxValidator& v) {
 	const YAML::Node& config_node = v.get_config_node();
 
 	std::string error_messages = "";
@@ -103,146 +122,152 @@ void SelectorSchemaNode::accept(SyntaxValidator& v) {
 		const std::string name = option.first.first;
 		const std::string type = option.first.second;
 
-		try {
-			SyntaxValidator o(config_node);
-			option.second->accept(o);
-			return;
-		} catch (const std::logic_error& e) {
-			error_messages += "\n- option (name: " + name + ", type: " + type
-					+ "): " + e.what() + "\n";
+		{
+			SyntaxValidator local_validator(config_node, false); // this validator does not throw on failure
+			const bool accepted = option.second->accept(local_validator);
+			if (accepted) {
+				return true;
+			} else {
+				error_messages += "\n- option (name: " + name + ", type: "
+						+ type + "): " + local_validator.get_error_message()
+						+ "\n";
+			}
 		}
 	}
-	throw SelectorValidationFailure(get_name(), error_messages);
+	return v.report_error(SelectorValidationFailure(get_name(), error_messages));
 }
 
-void StringSchemaNode::accept(SyntaxValidator& v) {
+bool StringSchemaNode::accept(SyntaxValidator& v) {
 	using MyType = std::string;
 	MyType value;
 
 	// check that yaml-cpp can cast to the right type
-	try {
-		value = v.get_config_node().as<MyType>();
-	} catch (...) {
-		throw TypeCastValidationFailure(get_name(), "std::string");
+	if (not YAML::convert<MyType>::decode(v.get_config_node(), value)) {
+		return v.report_error(
+				TypeCastValidationFailure(get_name(), "std::string"));
 	}
 
 	// check that the provided value is valid
 	if (has_valid_values_) {
 		if (std::find(valid_values_.begin(), valid_values_.end(), value)
 				== valid_values_.end()) {
-			throw InvalidScalarValueValidationFailure(get_name(),
-					v.get_config_node().as<std::string>(),
-					valid_values_string_);
+			return v.report_error(
+					InvalidScalarValueValidationFailure(get_name(),
+							v.get_config_node().as<std::string>(),
+							valid_values_string_));
 		}
 	}
+	return true;
 }
 
-void DoubleSchemaNode::accept(SyntaxValidator& v) {
+bool DoubleSchemaNode::accept(SyntaxValidator& v) {
 	using MyType = double;
 	MyType value;
 
 	// check that yaml-cpp can cast to the right type
-	try {
-		value = v.get_config_node().as<MyType>();
-	} catch (...) {
-		throw TypeCastValidationFailure(get_name(), "double");
+	if (not YAML::convert<MyType>::decode(v.get_config_node(), value)) {
+		return v.report_error(TypeCastValidationFailure(get_name(), "double"));
 	}
 
 	// check that the provided value is valid
 	if (has_valid_values_) {
 		if (std::find(valid_values_.begin(), valid_values_.end(), value)
 				== valid_values_.end()) {
-			throw InvalidScalarValueValidationFailure(get_name(),
-					v.get_config_node().as<std::string>(),
-					valid_values_string_);
+			return v.report_error(
+					InvalidScalarValueValidationFailure(get_name(),
+							v.get_config_node().as<std::string>(),
+							valid_values_string_));
 		}
 	}
+	return true;
 }
 
-void FloatSchemaNode::accept(SyntaxValidator& v) {
+bool FloatSchemaNode::accept(SyntaxValidator& v) {
 	using MyType = float;
 	MyType value;
 
 	// check that yaml-cpp can cast to the right type
-	try {
-		value = v.get_config_node().as<MyType>();
-	} catch (...) {
-		throw TypeCastValidationFailure(get_name(), "float");
+	if (not YAML::convert<MyType>::decode(v.get_config_node(), value)) {
+		return v.report_error(TypeCastValidationFailure(get_name(), "float"));
 	}
 
 	// check that the provided value is valid
 	if (has_valid_values_) {
 		if (std::find(valid_values_.begin(), valid_values_.end(), value)
 				== valid_values_.end()) {
-			throw InvalidScalarValueValidationFailure(get_name(),
-					v.get_config_node().as<std::string>(),
-					valid_values_string_);
+			return v.report_error(
+					InvalidScalarValueValidationFailure(get_name(),
+							v.get_config_node().as<std::string>(),
+							valid_values_string_));
 		}
 	}
+	return true;
 }
 
-void BoolSchemaNode::accept(SyntaxValidator& v) {
+bool BoolSchemaNode::accept(SyntaxValidator& v) {
 	using MyType = bool;
 	MyType value;
 
 	// check that yaml-cpp can cast to the right type
-	try {
-		value = v.get_config_node().as<MyType>();
-	} catch (...) {
-		throw TypeCastValidationFailure(get_name(), "bool");
+	if (not YAML::convert<MyType>::decode(v.get_config_node(), value)) {
+		return v.report_error(TypeCastValidationFailure(get_name(), "bool"));
 	}
 
 	// check that the provided value is valid
 	const std::string string_value = v.get_config_node().as<std::string>();
 	if (std::find(valid_strings_.begin(), valid_strings_.end(), string_value)
 			== valid_strings_.end()) {
-		throw InvalidScalarValueValidationFailure(get_name(),
-				v.get_config_node().as<std::string>(), valid_values_string_);
+		return v.report_error(
+				InvalidScalarValueValidationFailure(get_name(),
+						v.get_config_node().as<std::string>(),
+						valid_values_string_));
 	}
+	return true;
 }
 
-void IntegerSchemaNode::accept(SyntaxValidator& v) {
+bool IntegerSchemaNode::accept(SyntaxValidator& v) {
 	using MyType = int;
 	MyType value;
 
 	// check that yaml-cpp can cast to the right type
-	try {
-		value = v.get_config_node().as<MyType>();
-	} catch (...) {
-		throw TypeCastValidationFailure(get_name(), "int");
+	if (not YAML::convert<MyType>::decode(v.get_config_node(), value)) {
+		return v.report_error(TypeCastValidationFailure(get_name(), "int"));
 	}
 
 	// check that the provided value is valid
 	if (has_valid_values_) {
 		if (std::find(valid_values_.begin(), valid_values_.end(), value)
 				== valid_values_.end()) {
-			throw InvalidScalarValueValidationFailure(get_name(),
-					v.get_config_node().as<std::string>(),
-					valid_values_string_);
+			return v.report_error(
+					InvalidScalarValueValidationFailure(get_name(),
+							v.get_config_node().as<std::string>(),
+							valid_values_string_));
 		}
 	}
+	return true;
 }
 
-void UnsignedIntegerSchemaNode::accept(SyntaxValidator& v) {
+bool UnsignedIntegerSchemaNode::accept(SyntaxValidator& v) {
 	using MyType = unsigned int;
 	MyType value;
 
 	// check that yaml-cpp can cast to the right type
-	try {
-		value = v.get_config_node().as<MyType>();
-	} catch (...) {
-		throw TypeCastValidationFailure(get_name(), "unsigned int");
+	if (not YAML::convert<MyType>::decode(v.get_config_node(), value)) {
+		return v.report_error(
+				TypeCastValidationFailure(get_name(), "unsigned int"));
 	}
 
 	// check that the provided value is valid
 	if (has_valid_values_) {
 		if (std::find(valid_values_.begin(), valid_values_.end(), value)
 				== valid_values_.end()) {
-			throw InvalidScalarValueValidationFailure(get_name(),
-					v.get_config_node().as<std::string>(),
-					valid_values_string_);
+			return v.report_error(
+					InvalidScalarValueValidationFailure(get_name(),
+							v.get_config_node().as<std::string>(),
+							valid_values_string_));
 		}
 	}
+	return true;
 }
 
 }

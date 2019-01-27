@@ -5,12 +5,12 @@
   human: true,
   family: [elizabeth, mom, dad, bubba, ingrid],
   money: 3.50,
-  money2: 12.75,
+  money2: true,
   velocities: 
   [
-    {speed-of-sound: 340, Mach: 1, direction: [1, 1, 1]},
+    {speed-of-sound: 340., Mach: 1, direction: [1, 1, 1]},
     {speed: 70, direction: [1, 1, 1]},
-    [10, 20, 30],
+    [10, 20, h],
   ]
 }
 

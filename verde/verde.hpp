@@ -36,7 +36,7 @@ public:
 	virtual ~SchemaNodeBase() {
 	}
 
-	virtual void accept(SyntaxValidator&)=0;
+	virtual bool accept(SyntaxValidator&)=0;
 
 	inline const std::string get_name() const {
 		return name_;
@@ -61,13 +61,37 @@ public:
 class SyntaxValidator: public SchemaTraverserBase {
 protected:
 	const YAML::Node& config_node_;
+	const bool throw_on_fail_;
+	std::string error_message_;
 public:
-	SyntaxValidator(const YAML::Node& config_node);
+	SyntaxValidator(const YAML::Node& config_node, const bool throw_on_fail =
+			true);
 
 	void visit(SchemaNodeBase&) override;
 
 	inline const YAML::Node& get_config_node() const {
 		return config_node_;
+	}
+
+	inline const bool get_throw_on_fail() const {
+		return throw_on_fail_;
+	}
+
+	inline bool report_error(const std::logic_error& exception) {
+		if (throw_on_fail_) {
+			throw exception;
+		} else {
+			error_message_ = exception.what();
+			return false;
+		}
+	}
+
+	inline void set_error_message(const std::string& error_message) {
+		error_message_ = error_message;
+	}
+
+	inline std::string get_error_message() const {
+		return error_message_;
 	}
 };
 
@@ -105,7 +129,7 @@ public:
 	MapSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -152,7 +176,7 @@ public:
 	VectorSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -184,7 +208,7 @@ public:
 	SelectorSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -219,7 +243,7 @@ public:
 	StringSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -243,7 +267,7 @@ public:
 	DoubleSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -267,7 +291,7 @@ public:
 	FloatSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -290,7 +314,7 @@ public:
 	BoolSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -314,7 +338,7 @@ public:
 	IntegerSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
@@ -338,7 +362,7 @@ public:
 	UnsignedIntegerSchemaNode(const ParserHelper& node_factory,
 			const YAML::Node& yaml_node);
 
-	void accept(SyntaxValidator&);
+	bool accept(SyntaxValidator&);
 
 	class Builder: public SchemaNodeBase::Builder {
 	public:
